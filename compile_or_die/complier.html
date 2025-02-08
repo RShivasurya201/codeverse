@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="complier.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <title>Complier or Die</title>
+  </head>
+  <script>
+    let a = 21; //used to track the options
+    let n = 2; //used to track 2nd options
+    let ig = 11; //used to index glass images
+    let credit = 0;
+    window.onload = function () {
+      showInstructions();
+    };
+
+    function showInstructions() {
+      const instructionSet = document.getElementById("instructionSet");
+      instructionSet.style.opacity = "1";
+      instructionSet.style.pointerEvents = "auto";
+      instructionSet.classList.add("fade-in");
+      // document.querySelector('.content').classList.add('blur');
+    }
+
+    function hideInstructions() {
+      const instructionSet = document.getElementById("instructionSet");
+      instructionSet.classList.add("fade-out");
+      setTimeout(() => {
+        instructionSet.style.opacity = "0";
+        instructionSet.style.pointerEvents = "none";
+        // document.querySelector('.content').classList.remove('blur');
+        instructionSet.classList.remove("fade-in", "fade-out");
+      }, 500);
+    }
+
+    function showHoverInstructions() {
+      const hoverInstructions = document.getElementById("hoverInstructions");
+      hoverInstructions.style.display = "block";
+      hoverInstructions.classList.add("fade-in");
+      // hoverInstructions.classList.remove('fade-out');
+    }
+
+    let hideHoverInstructionsTimer;
+
+    function startHideHoverInstructionsTimer() {
+      hideHoverInstructionsTimer = setTimeout(() => {
+        const hoverInstructions = document.getElementById("hoverInstructions");
+        hoverInstructions.classList.add("fade-out");
+        hoverInstructions.classList.remove("fade-in");
+        setTimeout(() => {
+          hoverInstructions.style.display = "none";
+        }, 500);
+      }, 500);
+    }
+
+    function cancelHideHoverInstructionsTimer() {
+      clearTimeout(hideHoverInstructionsTimer);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      let currentQuestionIndex = parseInt(0);
+
+      // Fetch questions from the backend
+
+      fetch("http://localhost:3000/questions")
+        .then((response) => response.json())
+        .then((data) => {
+          loadQuestion(data, currentQuestionIndex);
+        });
+
+      function loadQuestion(questions, questionIndex) {
+        const question = questions[questionIndex];
+        currentQuestionIndex = questionIndex;
+        document.getElementById("question-text").textContent =
+          question.question;
+
+        // First column buttons
+
+        const firstButton = document.getElementById("first_ans1");
+        const secondButton = document.getElementById("first_ans2");
+
+        firstButton.textContent = question.options[0].trim();
+        secondButton.textContent = question.options[1].trim();
+
+        firstButton.onclick = () =>
+          checkAnswer(questions, currentQuestionIndex, 0);
+
+        secondButton.onclick = () =>
+          checkAnswer(questions, currentQuestionIndex, 1);
+      }
+
+      function checkAnswer(questions, currentQuestionIndex, selectedOption) {
+        fetch("http://localhost:3000/check-answer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            questionIndex: currentQuestionIndex,
+            selectedOption: selectedOption,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.correct) {
+              
+              credit += 5;
+              document.getElementById("total_credits_remaining").innerHTML = credit;
+              currentQuestionIndex++;
+              if (currentQuestionIndex < questions.length) {
+                ig = ig + 10;
+                loadNextColumn(questions, currentQuestionIndex);
+
+              } else {
+                alert("You won completly!");
+              }
+            } else {
+              currentQuestionIndex++;
+              if (selectedOption == 0) {
+                displayBrokenGlass(ig);
+                if (currentQuestionIndex < questions.length) {
+                ig = ig + 10;
+                loadNextColumn(questions, currentQuestionIndex);
+
+              } 
+              } else {
+                displayBrokenGlass(ig + 1);
+                if (currentQuestionIndex < questions.length) {
+                ig = ig + 10;
+                loadNextColumn(questions, currentQuestionIndex);
+
+              } 
+              }
+              
+            }
+          });
+      }
+
+      function loadNextColumn(questions, questionIndex) {
+        const question = questions[questionIndex];
+        let b = a + 1;
+        currentQuestionIndex = questionIndex;
+        document.getElementById("question-text").textContent =
+          question.question;
+        const column = document.querySelector(`.s${n}`);
+        column.querySelector(`#a${a}`).textContent =
+          questions[questionIndex].options[0];
+        column.querySelector(`#a${b}`).textContent =
+          questions[questionIndex].options[1];
+
+        column.querySelector(`#a${a}`).onclick = () =>
+          checkAnswer(questions, currentQuestionIndex, 0);
+        column.querySelector(`#a${b}`).onclick = () =>
+          checkAnswer(questions, currentQuestionIndex, 1);
+        a = a + 10;
+        n = n + 1;
+        
+      }
+
+      function displayBrokenGlass(imgidx) {
+        const image = document.querySelector(`#i${imgidx}`);
+        image.src = "broken_glass.jpeg";
+      }
+    });
+  </script>
+  <body>
+    <div class="header-container">
+      <img src="codeverse.jpg" alt="Squid Game" class="header-image" />
+      <div class="header-content">
+        <img src="codeverse.jpg" alt="" class="fontbolt" />
+      </div>
+      <div class="header-right">
+        <button
+          class="instruction-btn"
+          onmouseover="showHoverInstructions()"
+          onmouseout="startHideHoverInstructionsTimer()"
+        >
+          Instructions
+        </button>
+
+        <div class="instruction-set" id="instructionSet">
+          <div class="instructions">
+            <h1>How to Play</h1>
+            <div class="close">
+              <button
+                onclick="hideInstructions()"
+                class="x_bar"
+                style="
+                  position: absolute;
+                  top: 10px;
+                  right: 10px;
+                  background: none;
+                  border: none;
+                  font-size: 24px;
+                "
+              >
+                <i class="fa fa-times" style="color: black"></i>
+              </button>
+            </div>
+            <dl>
+              <dt>Answering Questions:</dt>
+              <dd>
+                The first question appears with two answer options displayed on the first pair of tiles.
+Click on one of the two buttons corresponding to the answer you believe is correct.
+              </dd>
+              <dt>Choosing the Correct Glass Tile:</dt>
+              <dd>
+                If your answer is correct:
+The glass tile remains intact.
+The next question is displayed on the tiles of the next step.
+If your answer is incorrect:
+The glass tile breaks.
+You lose the game and must restart.
+              </dd>
+              <dt>Progression:</dt>
+              <dd>
+                Each correct answer moves you to the next step.
+The game continues until all questions are answered, and you safely reach the other side of the bridge.
+              </dd>
+              <dt>Winning:</dt>
+              <dd>
+                If you answer all questions correctly and cross the bridge, your remaining marbles are converted into points, determining your final score.
+              </dd>
+            </dl>
+          </div>
+        </div>
+        <!-- <div class="marbles_box">
+          <div class="total_marbles">Total Marbles :&ensp;</div>
+          <div class="total_marbles_remaining" id="total_marbles_remaining">
+            10
+          </div>
+        </div> -->
+        <div class="credits_box">
+          <div class="total_credits">Total Credits :</div>
+          <div class="total_credits_remaining" id="total_credits_remaining">
+            &ensp;0
+          </div>
+        </div>
+        <!-- <div class="logo-button"><i class="fa-regular fa-user"></i></div> -->
+      </div>
+    </div>
+    <div
+      class="hover-instructions"
+      id="hoverInstructions"
+      onmouseover="cancelHideHoverInstructionsTimer()"
+      onmouseout="startHideHoverInstructionsTimer()"
+    >
+      <h1>How to Play</h1>
+      <dl>
+        <dt>Starting Marbles:</dt>
+        <dd>
+          You begin the game with 10 marbles. These marbles are your betting
+          currency throughout the game.
+        </dd>
+        <dt>The Questions:</dt>
+        <dd>
+          You will be presented with 5 questions, one after the other. Each
+          question comes with two answer choices.
+        </dd>
+        <dt>Placing Your Bet:</dt>
+        <dd>
+          Before answering each question, you’ll have the chance to bet a
+          certain number of your marbles. You can bet as many or as few marbles
+          as you like, but remember—the more you bet, the more you could win or
+          lose!
+        </dd>
+        <dt>Winning and Losing:</dt>
+        <dd>
+          If you choose the correct answer, you’ll win back the marbles you bet
+          plus double that amount! If you choose the wrong answer, you’ll lose
+          the marbles you bet.
+        </dd>
+        <dt>Final Score:</dt>
+        <dd>
+          After you’ve answered all 5 questions, the number of marbles you have
+          left will be converted into credits, which is your final score in the
+          game. So, think carefully and bet wisely!
+        </dd>
+      </dl>
+    </div>
+    <main>
+      <!-- <div class="question_box">
+            <div class="time_credit">
+                <div class="time">Time:</div>
+                <div class="credit">Credit:</div>
+
+            </div>
+            <div class="question" id="questionSection">
+                <h1 id="questionTitle">Question</h1>
+                <div class="input-container">
+                    <textarea id="newQuestion" name="question1" rows="4" placeholder="int main() { std::cout << 'Hello, World!'; return 0; }" ></textarea>
+                </div>
+            </div>
+        </div> -->
+      <!-- <div id="questionbox"> -->
+      <div class="question" id="questionSection">
+        <div class="questionTitle">Question:</div>
+        <div class="displayquestion">
+          <h2 class="question-text" id="question-text">Loading question...</h2>
+        </div>
+      </div>
+      <div class="glass">
+        <div class="firstcolm">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i11" />
+          <button
+            class="first_an1"
+            id="first_ans1"
+            onclick="checkAnswer(this.textContent)"
+          >
+            Answer1
+          </button>
+
+          <!-- //if i give check answer here it is not working  -->
+
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i12" />
+          <button
+            class="first_an2"
+            id="first_ans2"
+            onclick="checkAnswer(this.textContent)"
+          >
+            Answer1
+          </button>
+        </div>
+        <div class="s2" id="c2">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i21"/>
+          <button class="second_ans1" id="a21">Answer1</button>
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i22"/>
+          <button class="second_ans2" id="a22">Answer2</button>
+        </div>
+        <div class="s3" id="c3">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i31"/>
+          <button class="third_ans1" id="a31">Answer1</button>
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i32"/>
+          <button class="third_ans2" id="a32">Answer2</button>
+        </div>
+        <div class="s4" id="c4">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i41"/>
+          <button class="fourth_ans1" id="a41">Answer1</button>
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i42"/>
+          <button class="fourth_ans2" id="a42">Answer2</button>
+        </div>
+        <div class="s5" id="c5">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i51"/>
+          <button class="fifth_ans1" id="a51">Answer1</button>
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i52"/>
+          <button class="fifth_ans2" id="a52">Answer2</button>
+        </div>
+        <div class="s6" id="c6">
+          <img src="mirror image.jpeg" alt="g1" width="200px" id="i61"/>
+          <button class="sixth_ans1" id="a61">Answer1</button>
+          <img src="mirror image.jpeg" alt="g2" width="200px" id="i62"/>
+          <button class="sixth_ans2" id="a62">Answer2</button>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
