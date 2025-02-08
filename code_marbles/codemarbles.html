@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Marbles</title>
+    <link rel="stylesheet" href="codemarbles.css">
+    <script>
+        let questionID = 0;
+        let currentQuestionIndex = 0;
+        let questionAnswered = false;
+        let questionsPlayed = 0;
+        const maxQuestionsPerTurn = 5;
+        let totalMarbles = 10;
+
+        function correctsound() {
+            var audio = new Audio('answer-correct.mp3');
+            audio.play();
+        }
+
+        function incorrectsound() {
+            var audio = new Audio('answer-incorrect.mp3');
+            audio.play();
+        }
+
+
+        function updateMarbles() {
+            document.getElementById("total_marbles_remaining").textContent = totalMarbles;
+        }
+
+        function calculateCredits() {
+            const maxMarbles = 320;
+            const maxCredits = 25;
+            const marblePerCredit = 12.8;
+
+            let credits = Math.floor(totalMarbles / marblePerCredit);
+            if (credits > maxCredits) credits = maxCredits;
+
+            document.getElementById("total_credits_remaining").textContent = credits;
+        }
+
+        async function fetchQuestion() {
+            try {
+                document.getElementById('img1').src = 'hand_closed.jpg';
+                document.getElementById('img2').src = 'hand_closed.jpg';
+                const response = await fetch(`http://localhost:3000/questions/${currentQuestionIndex}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    questionID = data.id;
+                    document.getElementById("question-number").textContent =   `Question ${currentQuestionIndex + 1}:`;
+                    document.getElementById("question-text").textContent = data.question;
+                    document.getElementById("answer1").textContent = data.answers[0];
+                    document.getElementById("answer2").textContent = data.answers[1];
+                    document.getElementById("bet1").onclick = () => placeBet(data.answers[0], "img1");
+                    document.getElementById("bet2").onclick = () => placeBet(data.answers[1], "img2");
+                    questionAnswered = false;
+                    document.getElementById("bet1").disabled = false;
+                    document.getElementById("bet2").disabled = false;
+                } else {
+                    console.error("Failed to fetch question:", response.statusText);
+                }
+            } catch (error) {
+                console.error("Error fetching question:", error);
+            }
+        }
+
+        async function placeBet(answer, imgId) {
+            const betAmountInput = document.getElementById("betAmount");
+            if (!betAmountInput) {
+                alert("Bet amount input not found.");
+                return;
+            }
+
+            const betAmount = parseInt(betAmountInput.value, 10);
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert("Please enter a valid bet amount.");
+                return;
+            }
+
+            if (betAmount > totalMarbles) {
+                alert("Bet amount exceeds total marbles.");
+                return;
+            }
+
+            const response = await fetch('http://localhost:3000/bet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ questionId: questionID, selectedAnswer: answer })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                document.getElementById("message1").textContent = result.message;
+
+                if (result.result === 'correct') {
+                    document.getElementById(imgId).src = "hand_with_marbles.jpg";
+                    correctsound(); 
+                    totalMarbles += betAmount; 
+                } else {
+                    document.getElementById(imgId).src = "hand_open.png";
+                    incorrectsound();
+                    totalMarbles -= betAmount;
+                }
+
+                updateMarbles();
+                questionAnswered = true;
+                document.getElementById("bet1").disabled = true;
+                document.getElementById("bet2").disabled = true;
+            } else {
+                console.error("Failed to place bet:", response.statusText);
+            }
+        }
+
+        function handleNextQuestion() {
+            if (questionAnswered) {
+                questionsPlayed++;
+                if (questionsPlayed >= maxQuestionsPerTurn) {
+                    alert("Game over! Calculating credits...");
+                    calculateCredits();
+                    return;
+                }
+                currentQuestionIndex++;
+                fetchQuestion(); 
+            } else {
+                alert("Please place a bet before moving to the next question.");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchQuestion();
+
+            document.querySelector('.next').addEventListener('click', handleNextQuestion);
+        });
+    </script>
+</head>
+<script>
+    function btn() {
+    document.getElementById("popupBox1").style.transition = "opacity 0.5s";
+    document.getElementById("popupBox1").style.opacity = "0";
+    document.getElementById("popupBox1").style.height= 0;
+    document.getElementById("popupBox1").style.width= 0;
+    document.getElementById("main").style.filter = "blur(0px)";
+    setTimeout(() => {
+        document.getElementById("popupBox1").style.display = "none";
+    }, 500);
+}
+function showPopup(event) {
+    const popup = document.getElementById('popupBox');
+    const tab = event.currentTarget;
+    const tabRect = tab.getBoundingClientRect();
+
+    popup.style.top = `${tabRect.bottom + window.scrollY}px`;
+    popup.style.left = `${tabRect.left + window.scrollX}px`;
+    popup.classList.add('show');
+}
+function keepPopup(event) {
+    const popup = document.getElementById('popupBox');
+    popup.classList.add('show');
+}
+function hidePopup(event) {
+    const relatedTarget = event.relatedTarget || event.toElement;
+    if (!relatedTarget || !popupBox.contains(relatedTarget)) {
+        const popup = document.getElementById('popupBox');
+        popup.classList.remove('show');
+    }
+}
+</script>
+<body>
+    
+    <div class="header-container">
+        <img src="codeverse.png" alt="Squid Game" class="header-image">
+        <div class="header-content">
+            <img src="fontbolt (9).png" alt="" class="fontbolt">
+        </div>
+        <div class="header-right">
+            <div class="tab" onmouseover="showPopup(event)" onmouseout="hidePopup(event)">Instruction</div>
+            <div class="popup" id="popupBox" onmouseover="keepPopup(event)" onmouseout="hidePopup(event)">
+                <h1>How to Play</h1>
+                <dl>
+                    <dt>Starting Marbles:</dt>
+                    <dd>You begin the game with 10 marbles. These marbles are your betting currency throughout the game.</dd>
+                    <dt>The Questions:</dt>
+                    <dd>You will be presented with 5 questions, one after the other. Each question comes with two answer choices.</dd>
+                    <dt>Placing Your Bet:</dt>
+                    <dd>Before answering each question, you’ll have the chance to bet a certain number of your marbles. 
+                        You can bet as many or as few marbles as you like, but remember—the more you bet, the more you could win or lose!</dd>
+                    <dt>Winning and Losing:</dt>
+                    <dd>If you choose the correct answer, you’ll win back the marbles you bet plus double that amount!
+                        If you choose the wrong answer, you’ll lose the marbles you bet.</dd>
+                    <dt>Final Score:</dt>
+                    <dd>After you’ve answered all 5 questions, the number of marbles you have left will be converted into credits, 
+                        which is your final score in the game. So, think carefully and bet wisely!</dd>
+                </dl>
+            </div>
+            <div class="marbles_box">
+                <div class="total_marbles">Total Marbles :&ensp;</div>
+                <div class="total_marbles_remaining" id="total_marbles_remaining">10</div>
+            </div>
+            <div class="credits_box">
+                <div class="total_credits">Total Credits :</div>
+            <div class="total_credits_remaining" id="total_credits_remaining">&ensp;50</div>
+            </div>
+            <!-- <div class="logo-button"><i class="fa-regular fa-user"></i></div> -->
+        </div>
+    </div>
+    <div class="popup1" id="popupBox1">
+        <h2><b>How to Play</b></h2>
+        <button onclick="btn()" class="x_bar" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px;">
+            <i class="fa fa-times" style="color: black;"></i>
+        </button>
+        <dl>
+            <dt>Starting Marbles:</dt>
+            <dd>You begin the game with 10 marbles. These marbles are your betting currency throughout the game.</dd>
+            <dt>The Questions:</dt>
+            <dd>You will be presented with 5 questions, one after the other. Each question comes with two answer choices.</dd>
+            <dt>Placing Your Bet:</dt>
+            <dd>Before answering each question, you’ll have the chance to bet a certain number of your marbles. 
+                You can bet as many or as few marbles as you like, but remember—the more you bet, the more you could win or lose!</dd>
+            <dt>Winning and Losing:</dt>
+            <dd>If you choose the correct answer, you’ll win back the marbles you bet plus double that amount!
+                If you choose the wrong answer, you’ll lose the marbles you bet.</dd>
+            <dt>Final Score:</dt>
+            <dd>After you’ve answered all 5 questions, the number of marbles you have left will be converted into credits, 
+                which is your final score in the game. So, think carefully and bet wisely!</dd>
+        </dl>
+    </div>
+
+    <div id="main">
+        <div class="question">
+            <h2 class="h" id="question-number">Question</h2>
+            <div class="ds">
+                <h2 class="question-number" id="question-number">&ensp;</h2>
+                <h2 class="question-text" id="question-text">Loading question...</h2>
+            </div>
+            <div class="side">
+                <div class="ava"></div>
+                <div class="bet">
+                    <h2 class="marbles">Marble(s)&ensp;:&nbsp;</h2>
+                    <input type="number" id="betAmount" value="0" min="1" max="8">
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="hand1" id="hand1">
+                <h2 class="ans1" id="answer1">Answer 1</h2>
+                <img src="hand_open.jpg" class="img" id="img1">
+                <button class="btn1" id="bet1">BET</button>
+                <div class="message" id="message1"></div>
+            </div>
+            <div class="timer" id="timer"></div>
+            <div class="hand1" id="hand2">
+                <h2 class="ans1" id="answer2">Answer 2</h2>
+                <img src="hand_closed.jpg" alt="" class="img" id="img2">
+                <button class="btn1" id="bet2">BET</button>
+                <div class="message" id="message2"></div>
+                
+            </div>
+            
+            
+        </div>
+        <div class="nex"><button class="next">Next</button></div>
+        
+    </div>
+
+
+    <footer class="footer">
+        <div class="container">
+            <div class="social">
+                <a href="https://www.facebook.com" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://www.twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+                <a href="https://www.instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.linkedin.com" target="_blank"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2024 MyWebsite. All rights reserved. <br>
+            <p>This website was made with &ensp;<i class="fa-regular fa-heart"></i>&ensp; by RVtechlearn</p>
+        </div>
+    </footer>
+</body>
+</html>
